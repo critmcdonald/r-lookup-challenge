@@ -1,0 +1,67 @@
+---
+title: "Lookup challenge"
+output:
+  html_document:
+    df_print: paged
+knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs") })
+---
+
+
+I have a `data_df` that has a some incorrect `id`s for certain values.
+
+I have a `lookup_df` that has the correct `id`s for those values.
+
+I want to create a new `data_df$id_fixed` column that corrects the `id` (i.e. uses `lookup_df$id`) when `data_df$value` matches one in `lookup_df$value`, but keep the old `data_df$id` if the value does not match.
+
+Complicating factors of note: `data_df` is 1.5M obs. with 170 variables.
+
+```{r setup, echo=T, results='hide', message=F, warning=F}
+library(tidyverse)
+library(reprex)
+```
+
+```{r create_dfs}
+# lookup_df
+id = c("01", "02")
+value = c("a", "b")
+lookup_df = data.frame(id, value)
+
+# data_df
+id = c("04", "04", "01", "05", "05", "02", "06", "07")
+value = c("a", "a", "a", "b", "b", "b", "c", "d")
+data_df = data.frame(id, value)
+```
+
+```{r peek}
+lookup_df
+data_df
+```
+
+My inclination was to use a case_when to look forthe value is in the `lookup_df`, then replace the `id` with the matching `lookup_df$id`. I can find the matches ...
+
+```{r lookup_try}
+data_df %>%   
+  mutate(
+    id_new = case_when(
+      value %in% lookup_df$value ~ "fixit",
+      TRUE ~ id
+    )
+  )
+```
+
+... but I don't know how to replace the value with the matching `lookup_df$id`. If I use `lookup_df$id` on the right side of the case_when equation, then I think it returns ALL the `lookup_df$id`s, not just the one from the matching row.
+
+```text
+data_df %>%   
+  mutate(
+    id_new = case_when(
+      value %in% lookup_df$value ~ lookup_df$id,
+      TRUE ~ id
+    )
+  )
+```
+
+The error is:
+
+"Error: Problem with `mutate()` input `id_new`. x `value %in% lookup_df$value ~ lookup_df$id` must be length 8 or one, not 2. ℹ Input `id_new` is `case_when(value %in% lookup_df$value ~ lookup_df$id, TRUE ~ id)`."
+
