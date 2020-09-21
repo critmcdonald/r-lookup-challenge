@@ -21,20 +21,20 @@ library(reprex)
 ```
 
 ```{r create_dfs}
-# lookup_df
-id = c("01", "02")
-value = c("a", "b")
-lookup_df = data.frame(id, value)
-
 # data_df
 id = c("04", "04", "01", "05", "05", "02", "06", "07")
 value = c("a", "a", "a", "b", "b", "b", "c", "d")
 data_df = data.frame(id, value)
+
+# lookup_df
+lu_id = c("01", "02")
+lu_value = c("a", "b")
+lookup_df = data.frame(lu_id, lu_value)
 ```
 
 ```{r peek}
-lookup_df
 data_df
+lookup_df
 ```
 
 My inclination was to use a case_when to look forthe value is in the `lookup_df`, then replace the `id` with the matching `lookup_df$id`. I can find the matches ...
@@ -43,7 +43,7 @@ My inclination was to use a case_when to look forthe value is in the `lookup_df`
 data_df %>%   
   mutate(
     id_new = case_when(
-      value %in% lookup_df$value ~ "fixit",
+      value %in% lookup_df$lu_value ~ "fixit",
       TRUE ~ id
     )
   )
@@ -64,4 +64,19 @@ data_df %>%
 The error is:
 
 "Error: Problem with `mutate()` input `id_new`. x `value %in% lookup_df$value ~ lookup_df$id` must be length 8 or one, not 2. ℹ Input `id_new` is `case_when(value %in% lookup_df$value ~ lookup_df$id, TRUE ~ id)`."
+
+## Possible solution
+
+An idea from [@dhmontgomery](https://twitter.com/dhmontgomery) on News Nerdery is to do a left_join between the tables to get the matching values from `lookup_df`, then use a case_when to fill in the blanks with the existing ids.
+
+```{r solution}
+data_df %>% 
+  left_join(lookup_df, by = c("value" = "lu_value")) %>% 
+  mutate(
+    lu_id = case_when(
+      value %in% lookup_df$lu_value ~ lu_id,
+      TRUE ~ id
+    )
+  )
+```
 

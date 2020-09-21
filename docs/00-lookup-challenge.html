@@ -1643,32 +1643,32 @@ summary {
 <p>Complicating factors of note: <code>data_df</code> is 1.5M obs. with 170 variables.</p>
 <pre class="r"><code>library(tidyverse)
 library(reprex)</code></pre>
-<pre class="r"><code># lookup_df
-id = c(&quot;01&quot;, &quot;02&quot;)
-value = c(&quot;a&quot;, &quot;b&quot;)
-lookup_df = data.frame(id, value)
-
-# data_df
+<pre class="r"><code># data_df
 id = c(&quot;04&quot;, &quot;04&quot;, &quot;01&quot;, &quot;05&quot;, &quot;05&quot;, &quot;02&quot;, &quot;06&quot;, &quot;07&quot;)
 value = c(&quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;)
-data_df = data.frame(id, value)</code></pre>
-<pre class="r"><code>lookup_df</code></pre>
-<div data-pagedtable="false">
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":["id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["value"],"name":[2],"type":["chr"],"align":["left"]}],"data":[{"1":"01","2":"a"},{"1":"02","2":"b"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-</div>
+data_df = data.frame(id, value)
+
+# lookup_df
+lu_id = c(&quot;01&quot;, &quot;02&quot;)
+lu_value = c(&quot;a&quot;, &quot;b&quot;)
+lookup_df = data.frame(lu_id, lu_value)</code></pre>
 <pre class="r"><code>data_df</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":["id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["value"],"name":[2],"type":["chr"],"align":["left"]}],"data":[{"1":"04","2":"a"},{"1":"04","2":"a"},{"1":"01","2":"a"},{"1":"05","2":"b"},{"1":"05","2":"b"},{"1":"02","2":"b"},{"1":"06","2":"c"},{"1":"07","2":"d"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
+<pre class="r"><code>lookup_df</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["lu_id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["lu_value"],"name":[2],"type":["chr"],"align":["left"]}],"data":[{"1":"01","2":"a"},{"1":"02","2":"b"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 <p>My inclination was to use a case_when to look forthe value is in the <code>lookup_df</code>, then replace the <code>id</code> with the matching <code>lookup_df$id</code>. I can find the matches …</p>
 <pre class="r"><code>data_df %&gt;%   
   mutate(
     id_new = case_when(
-      value %in% lookup_df$value ~ &quot;fixit&quot;,
+      value %in% lookup_df$lu_value ~ &quot;fixit&quot;,
       TRUE ~ id
     )
   )</code></pre>
@@ -1687,6 +1687,23 @@ data_df = data.frame(id, value)</code></pre>
   )</code></pre>
 <p>The error is:</p>
 <p>“Error: Problem with <code>mutate()</code> input <code>id_new</code>. x <code>value %in% lookup_df$value ~ lookup_df$id</code> must be length 8 or one, not 2. ℹ Input <code>id_new</code> is <code>case_when(value %in% lookup_df$value ~ lookup_df$id, TRUE ~ id)</code>.”</p>
+<div id="possible-solution" class="section level2">
+<h2>Possible solution</h2>
+<p>An idea from <span class="citation">[@dhmontgomery]</span>(<a href="https://twitter.com/dhmontgomery" class="uri">https://twitter.com/dhmontgomery</a>) on News Nerdery is to do a left_join between the tables to get the matching values from <code>lookup_df</code>, then use a case_when to fill in the blanks with the existing ids.</p>
+<pre class="r"><code>data_df %&gt;% 
+  left_join(lookup_df, by = c(&quot;value&quot; = &quot;lu_value&quot;)) %&gt;% 
+  mutate(
+    lu_id = case_when(
+      value %in% lookup_df$lu_value ~ lu_id,
+      TRUE ~ id
+    )
+  )</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["value"],"name":[2],"type":["chr"],"align":["left"]},{"label":["lu_id"],"name":[3],"type":["chr"],"align":["left"]}],"data":[{"1":"04","2":"a","3":"01"},{"1":"04","2":"a","3":"01"},{"1":"01","2":"a","3":"01"},{"1":"05","2":"b","3":"02"},{"1":"05","2":"b","3":"02"},{"1":"02","2":"b","3":"02"},{"1":"06","2":"c","3":"06"},{"1":"07","2":"d","3":"07"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
 
 
 
